@@ -1,0 +1,45 @@
+# Composer dependencies
+/vendor/
+/composer.lock
+
+# Debug and log files
+*.log
+*.debug
+
+# IDE and editor settings
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# PHPUnit
+phpunit.xml
+phpunit.xml.dist
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Node.js
+node_modules/
+
+# Build artifacts
+/build/
+/dist/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Coverage reports
+coverage/
+*.lcov
+
+# User-specific files
+*.env
+.env.local
+.env.*.local
