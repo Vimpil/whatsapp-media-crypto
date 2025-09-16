@@ -4,40 +4,40 @@ require __DIR__ . '/../vendor/autoload.php';
 use GuzzleHttp\Psr7\Utils;
 use WhatsAppMedia\StreamFactory;
 
-// Пути к файлам
+// File paths
 $originalDocumentPath = __DIR__ . '/../samples/original/DOCUMENT.original';
 $keyPath = __DIR__ . '/../samples/original/DOCUMENT.key';
 $outputEncryptedPath = __DIR__ . '/../samples/DOCUMENT.encrypted';
 
 try {
-    // Проверяем существование исходных файлов
+    // Check if source files exist
     if (!file_exists($originalDocumentPath)) {
-        throw new \RuntimeException("Исходный файл не найден: $originalDocumentPath");
+        throw new \RuntimeException("Source file not found: $originalDocumentPath");
     }
     if (!file_exists($keyPath)) {
-        throw new \RuntimeException("Файл ключа не найден: $keyPath");
+        throw new \RuntimeException("Key file not found: $keyPath");
     }
 
-    // Читаем ключ
+    // Read the key
     $mediaKey = file_get_contents($keyPath);
 
-    // Открываем исходный файл
+    // Open the source file
     $source = Utils::streamFor(fopen($originalDocumentPath, 'rb'));
 
-    // Создаем директорию для выходного файла, если её нет
+    // Create the output directory if it doesn't exist
     $outputDir = dirname($outputEncryptedPath);
     if (!is_dir($outputDir)) {
         mkdir($outputDir, 0777, true);
     }
 
-    // Создаём шифрующий поток через фабрику
+    // Create the encrypting stream via the factory
     $encStream = StreamFactory::createEncryptingStream(
         $source,
         $mediaKey,
         'DOCUMENT'
     );
 
-    // Записываем зашифрованные данные
+    // Write the encrypted data
     $outputFile = fopen($outputEncryptedPath, 'wb');
     try {
         while (!$encStream->eof()) {
@@ -51,19 +51,19 @@ try {
         fclose($outputFile);
     }
 
-    // Проверяем размеры файлов
+    // Check file sizes
     $originalSize = filesize($originalDocumentPath);
     $encryptedSize = filesize($outputEncryptedPath);
 
-    echo "Документ успешно зашифрован: $outputEncryptedPath\n";
-    echo "\nИнформация о файлах:\n";
-    echo "Размер исходного файла: " . number_format($originalSize) . " байт\n";
-    echo "Размер зашифрованного файла: " . number_format($encryptedSize) . " байт\n";
+    echo "Document successfully encrypted: $outputEncryptedPath\n";
+    echo "\nFile information:\n";
+    echo "Original file size: " . number_format($originalSize) . " bytes\n";
+    echo "Encrypted file size: " . number_format($encryptedSize) . " bytes\n";
 
 } catch (\InvalidArgumentException $e) {
-    echo "Ошибка валидации: " . $e->getMessage() . "\n";
+    echo "Validation error: " . $e->getMessage() . "\n";
     exit(1);
 } catch (\RuntimeException $e) {
-    echo "Ошибка шифрования: " . $e->getMessage() . "\n";
+    echo "Encryption error: " . $e->getMessage() . "\n";
     exit(1);
 }

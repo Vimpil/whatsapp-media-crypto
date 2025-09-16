@@ -1,44 +1,44 @@
 # WhatsApp Media Crypto
 
-Библиотека для шифрования и дешифрования медиафайлов с использованием алгоритмов WhatsApp. Реализует PSR-7 совместимые потоковые декораторы.
+A library for encrypting and decrypting media files using WhatsApp algorithms. Implements PSR-7 compatible stream decorators.
 
-## Требования
+## Requirements
 
 - PHP 7.4+
 - OpenSSL extension
 - Composer
 
-## Установка
+## Installation
 
 ```bash
 composer require your-vendor/whatsapp-media-crypto
 ```
 
-## Основные возможности
+## Main Features
 
-- PSR-7 совместимые потоковые декораторы
-- Поддержка различных типов медиа (изображения, видео, аудио, документы)
-- Потоковая обработка больших файлов
-- Встроенная генерация sidecar для стриминга видео и аудио
-- Строгая типизация и полная документация
-- 100% покрытие тестами
+- PSR-7 compatible stream decorators
+- Support for various media types (images, video, audio, documents)
+- Streaming processing of large files
+- Built-in sidecar generation for video and audio streaming
+- Strict typing and complete documentation
+- 100% test coverage
 
-## Структура проекта
+## Project Structure
 
 ```
 src/
 ├── Stream/
-│   ├── AbstractCryptoStream.php    # Базовый класс для криптографических потоков
-│   ├── EncryptingStream.php        # Реализация шифрования
-│   └── DecryptingStream.php        # Реализация дешифрования
-├── HKDF.php                        # Реализация HKDF
-├── MediaKey.php                    # Работа с медиа-ключами
-└── StreamFactory.php               # Фабрика для создания потоков
+│   ├── AbstractCryptoStream.php    # Base class for cryptographic streams
+│   ├── EncryptingStream.php        # Encryption implementation
+│   └── DecryptingStream.php        # Decryption implementation
+├── HKDF.php                        # HKDF implementation
+├── MediaKey.php                    # Media key handling
+└── StreamFactory.php               # Stream factory
 ```
 
-## Примеры использования
+## Usage Examples
 
-### Шифрование изображений
+### Image Encryption
 
 ```php
 use WhatsAppMedia\StreamFactory;
@@ -54,7 +54,7 @@ $encryptedStream = StreamFactory::createEncryptingStream(
 );
 ```
 
-### Шифрование видео/аудио с генерацией сайдкара
+### Video/Audio Encryption with Sidecar Generation
 
 ```php
 $source = Utils::streamFor(fopen('video.mp4', 'rb'));
@@ -64,14 +64,14 @@ $encryptedStream = StreamFactory::createEncryptingStream(
     $source,
     $mediaKey,
     'VIDEO',
-    true // включаем генерацию сайдкара
+    true // enable sidecar generation
 );
 
-// После шифрования получаем сайдкар
+// Get the sidecar after encryption
 $sidecar = $encryptedStream->getSidecar();
 ```
 
-### Дешифрование файлов
+### File Decryption
 
 ```php
 $encrypted = Utils::streamFor(fopen('encrypted_file', 'rb'));
@@ -80,97 +80,97 @@ $mediaKey = file_get_contents('file.key');
 $decryptedStream = StreamFactory::createDecryptingStream(
     $encrypted,
     $mediaKey,
-    'VIDEO' // или 'AUDIO', 'IMAGE', 'DOCUMENT'
+    'VIDEO' // or 'AUDIO', 'IMAGE', 'DOCUMENT'
 );
 ```
 
-## Поддерживаемые типы медиа
+## Supported Media Types
 
-| Тип      | Описание     | Информационная строка    | Поддержка сайдкара |
-|----------|--------------|-------------------------|-------------------|
-| IMAGE    | Изображения  | WhatsApp Image Keys    | Нет              |
-| VIDEO    | Видео       | WhatsApp Video Keys    | Да               |
-| AUDIO    | Аудио       | WhatsApp Audio Keys    | Да               |
-| DOCUMENT | Документы    | WhatsApp Document Keys | Нет              |
+| Type     | Description | Application Info         | Sidecar Support |
+|----------|-------------|-------------------------|-----------------|
+| IMAGE    | Images      | WhatsApp Image Keys     | No             |
+| VIDEO    | Video       | WhatsApp Video Keys     | Yes            |
+| AUDIO    | Audio       | WhatsApp Audio Keys     | Yes            |
+| DOCUMENT | Documents   | WhatsApp Document Keys  | No             |
 
-## Готовые примеры
+## Ready-to-Use Examples
 
-В директории `examples/` доступны готовые скрипты:
+The `examples/` directory contains ready-to-use scripts:
 
-### Шифрование
-- `encrypt_image.php` - шифрование изображений
-- `encrypt_video_streaming.php` - шифрование видео с генерацией сайдкара
-- `encrypt_audio_streaming.php` - шифрование аудио с генерацией сайдкара
-- `encrypt_audio.php` - базовое шифрование аудио
-- `encrypt_video.php` - базовое шифрование видео
+### Encryption
+- `encrypt_image.php` - image encryption
+- `encrypt_video_streaming.php` - video encryption with sidecar generation
+- `encrypt_audio_streaming.php` - audio encryption with sidecar generation
+- `encrypt_audio.php` - basic audio encryption
+- `encrypt_video.php` - basic video encryption
 
-### Дешифрование
-- `decrypt_video.php` - дешифрование видео
-- `decrypt_audio.php` - дешифрование аудио
-- `decrypt_image.php` - дешифрование изображений
+### Decryption
+- `decrypt_video.php` - video decryption
+- `decrypt_audio.php` - audio decryption
+- `decrypt_image.php` - image decryption
 
-Все примеры включают:
-- Проверки существования файлов
-- Создание выходных директорий
-- Обработку ошибок
-- Информацию о размерах файлов
+All examples include:
+- File existence checks
+- Output directory creation
+- Error handling
+- File size information
 
-## Особенности реализации
+## Implementation Details
 
-### Шифрование
+### Encryption
 
-1. Генерация или использование существующего mediaKey (32 байта)
-2. Расширение ключа через HKDF с SHA-256 и специфичной для типа медиа информацией
-3. Разделение на компоненты:
-   - iv: первые 16 байт
-   - cipherKey: следующие 32 байта
-   - macKey: следующие 32 байта
-   - refKey: оставшиеся 32 байта (не используются)
-4. Шифрование AES-CBC с использованием cipherKey и iv
-5. Генерация HMAC с macKey
+1. Generate or use existing mediaKey (32 bytes)
+2. Expand key using HKDF with SHA-256 and type-specific application info
+3. Split into components:
+   - iv: first 16 bytes
+   - cipherKey: next 32 bytes
+   - macKey: next 32 bytes
+   - refKey: remaining 32 bytes (not used)
+4. AES-CBC encryption using cipherKey and iv
+5. HMAC generation using macKey
 
-### Генерация сайдкара (для видео и аудио)
+### Sidecar Generation (for video and audio)
 
-- Размер чанка: 64KB
-- Перекрытие: 16 байт
-- HMAC SHA-256 для каждого чанка, обрезанный до 10 байт
-- Генерация "на лету" без дополнительных чтений из потока
+- Chunk size: 64KB
+- Overlap: 16 bytes
+- HMAC SHA-256 for each chunk, truncated to 10 bytes
+- On-the-fly generation without additional reads from source stream
 
-## Тестирование
+## Testing
 
 ```bash
 composer install
 vendor/bin/phpunit
 ```
 
-### Покрытие тестами
+### Test Coverage
 
-Тесты охватывают все требования задания:
+Tests cover all requirements:
 
-1. Базовая функциональность:
-   - Шифрование/дешифрование для всех типов медиа
-   - Корректная работа с различными размерами файлов
-   - Проверка соответствия результатов с эталонными файлами
+1. Basic functionality:
+   - Encryption/decryption for all media types
+   - Correct handling of various file sizes
+   - Verification against reference files
 
-2. Генерация сайдкара (задание со звёздочкой):
-   - Генерация для видео и аудио файлов
-   - Проверка соответствия с эталонными сайдкарами
-   - Валидация форматов и размеров
+2. Sidecar generation (bonus task):
+   - Generation for video and audio files
+   - Verification against reference sidecars
+   - Format and size validation
 
 3. Edge cases:
-   - Проверка некорректного MAC
-   - Обработка пустых потоков
-   - Валидация длины ключей
-   - Проверка неподдерживаемых типов медиа
+   - Invalid MAC verification
+   - Empty stream handling
+   - Key length validation
+   - Unsupported media type checks
 
-## Безопасность
+## Security
 
-- Валидация всех входных данных
-- Проверка MAC для каждого чанка
-- Безопасная работа с криптографическими примитивами
-- Корректная обработка ошибок
-- Проверка целостности данных
+- Input data validation
+- MAC verification for each chunk
+- Secure cryptographic primitive handling
+- Proper error handling
+- Data integrity verification
 
-## Лицензия
+## License
 
 MIT License

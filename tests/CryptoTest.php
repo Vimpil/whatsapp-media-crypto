@@ -9,7 +9,7 @@ class CryptoTest extends TestCase
     private const SAMPLE_DIR = __DIR__ . '/../samples/original/';
 
     /**
-     * Тестирование базового шифрования/дешифрования для всех типов медиа
+     * Testing basic encryption/decryption for all media types
      *
      * @dataProvider mediaTypeProvider
      */
@@ -19,7 +19,7 @@ class CryptoTest extends TestCase
         $mediaKey = file_get_contents(self::SAMPLE_DIR . "$mediaType.key");
         $originalData = file_get_contents($original);
 
-        // Шифрование
+        // Encryption
         $source = Utils::streamFor(fopen($original, 'rb'));
         $encStream = StreamFactory::createEncryptingStream($source, $mediaKey, $mediaType);
         $encrypted = '';
@@ -27,7 +27,7 @@ class CryptoTest extends TestCase
             $encrypted .= $encStream->read(8192);
         }
 
-        // Дешифрование
+        // Decryption
         $decStream = StreamFactory::createDecryptingStream(
             Utils::streamFor($encrypted),
             $mediaKey,
@@ -38,15 +38,15 @@ class CryptoTest extends TestCase
             $decrypted .= $decStream->read(8192);
         }
 
-        $this->assertNotEmpty($encrypted, "Зашифрованные данные не должны быть пустыми для $mediaType");
+        $this->assertNotEmpty($encrypted, "Encrypted data should not be empty for $mediaType");
         $this->assertTrue(
             hash('sha256', $originalData) === hash('sha256', $decrypted),
-            "Расшифрованные данные должны совпадать с оригиналом для $mediaType"
+            "Decrypted data should match original for $mediaType"
         );
     }
 
     /**
-     * Тестирование генерации и валидации сайдкара для стримящихся медиа
+     * Testing sidecar generation and validation for streamable media
      *
      * @dataProvider streamableMediaTypeProvider
      */
@@ -56,32 +56,32 @@ class CryptoTest extends TestCase
         $mediaKey = file_get_contents(self::SAMPLE_DIR . "$mediaType.key");
         $expectedSidecar = file_get_contents(self::SAMPLE_DIR . "$mediaType.sidecar");
 
-        // Шифрование с генерацией сайдкара
+        // Encryption with sidecar generation
         $source = Utils::streamFor(fopen($original, 'rb'));
         $encStream = StreamFactory::createEncryptingStream(
             $source,
             $mediaKey,
             $mediaType,
-            true // включаем генерацию сайдкара
+            true // enable sidecar generation
         );
 
-        // Читаем зашифрованные данные, чтобы сгенерировался сайдкар
+        // Read encrypted data to generate sidecar
         while (!$encStream->eof()) {
             $encStream->read(8192);
         }
 
         $generatedSidecar = $encStream->getSidecar();
 
-        $this->assertNotEmpty($generatedSidecar, "Сайдкар не должен быть пустым для $mediaType");
+        $this->assertNotEmpty($generatedSidecar, "Sidecar should not be empty for $mediaType");
         $this->assertEquals(
             $expectedSidecar,
             $generatedSidecar,
-            "Сгенерированный сайдкар должен совпадать с ожидаемым для $mediaType"
+            "Generated sidecar should match expected for $mediaType"
         );
     }
 
     /**
-     * Тест некорректного MAC
+     * Test invalid MAC handling
      */
     public function testInvalidMac()
     {
@@ -97,14 +97,14 @@ class CryptoTest extends TestCase
             'VIDEO'
         );
 
-        // Попытка чтения должна вызвать исключение
+        // Reading attempt should throw an exception
         while (!$decStream->eof()) {
             $decStream->read(8192);
         }
     }
 
     /**
-     * Тест попытки получения сайдкара для неподдерживаемого типа
+     * Test sidecar generation attempt for unsupported type
      */
     public function testSidecarForUnsupportedType()
     {
@@ -117,12 +117,12 @@ class CryptoTest extends TestCase
             $source,
             $mediaKey,
             'IMAGE',
-            true // попытка включить генерацию сайдкара для изображения
+            true // attempt to enable sidecar generation for image
         );
     }
 
     /**
-     * Тест обработки пустого потока
+     * Test empty stream handling
      */
     public function testEmptyStream()
     {
@@ -135,18 +135,18 @@ class CryptoTest extends TestCase
             $encrypted .= $encStream->read(8192);
         }
 
-        $this->assertNotEmpty($encrypted, 'Даже пустой поток должен дать зашифрованные данные (из-за паддинга)');
+        $this->assertNotEmpty($encrypted, 'Even empty stream should produce encrypted data (due to padding)');
     }
 
     /**
-     * Тест некорректного ключа
+     * Test invalid key length
      */
     public function testInvalidKeyLength()
     {
         $this->expectException(\InvalidArgumentException::class);
 
         $source = Utils::streamFor('test');
-        $invalidKey = random_bytes(16); // Неверная длина ключа
+        $invalidKey = random_bytes(16); // Invalid key length
 
         StreamFactory::createEncryptingStream($source, $invalidKey, 'VIDEO');
     }

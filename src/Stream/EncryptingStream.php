@@ -13,13 +13,13 @@ class EncryptingStream extends AbstractCryptoStream
     /** @var resource HMAC context */
     private $macCtx;
 
-    /** @var string Буфер для сайдкара */
+    /** @var string Buffer for sidecar */
     private $sidecarBuffer = '';
 
-    /** @var string Сайдкар */
+    /** @var string Sidecar */
     private $sidecar = '';
 
-    /** @var bool Генерировать ли сайдкар */
+    /** @var bool Generate sidecar */
     private $generateSidecar;
 
     public function __construct(
@@ -49,14 +49,14 @@ class EncryptingStream extends AbstractCryptoStream
     }
 
     /**
-     * Получить сгенерированный сайдкар
+     * Get the generated sidecar
      */
     public function getSidecar(): string
     {
         if (!$this->generateSidecar) {
             throw new \RuntimeException('Sidecar generation is not enabled');
         }
-        // Дочитываем весь поток, чтобы сгенерировать полный сайдкар
+        // Read the entire stream to generate complete sidecar
         while (!$this->eof()) {
             $this->read(8192);
         }
@@ -65,7 +65,7 @@ class EncryptingStream extends AbstractCryptoStream
 
     protected function processChunk(string $chunk): string
     {
-        // Ensure padding is applied even for empty streams
+
         $isFinal = $this->stream->eof();
         $dataToEncrypt = $isFinal ? $this->pkcs7_pad($chunk) : $chunk;
 
@@ -87,7 +87,7 @@ class EncryptingStream extends AbstractCryptoStream
 
         hash_update($this->macCtx, $encrypted);
 
-        // Обработка сайдкара
+        // Process sidecar
         if ($this->generateSidecar) {
             $this->processSidecarChunk($encrypted);
         }
@@ -106,7 +106,7 @@ class EncryptingStream extends AbstractCryptoStream
         $this->sidecarBuffer .= $encrypted;
 
         while (strlen($this->sidecarBuffer) >= self::SIDECAR_CHUNK_SIZE) {
-            // Берем чанк для сайдкара с перекрытием
+            // Get chunk for sidecar with overlap
             $chunk = substr($this->sidecarBuffer, 0, self::SIDECAR_CHUNK_SIZE);
             if (!$this->stream->eof()) {
                 $overlap = substr($this->sidecarBuffer, self::SIDECAR_CHUNK_SIZE, self::SIDECAR_OVERLAP);
@@ -115,16 +115,16 @@ class EncryptingStream extends AbstractCryptoStream
                 }
             }
 
-            // Генерируем HMAC для чанка
+            // Generate HMAC for chunk
             $hmacCtx = hash_init('sha256', HASH_HMAC, $this->macKey);
             hash_update($hmacCtx, $chunk);
             $this->sidecar .= substr(hash_final($hmacCtx, true), 0, self::MAC_LEN);
 
-            // Сдвигаем буфер
+            // Move buffer
             $this->sidecarBuffer = substr($this->sidecarBuffer, self::SIDECAR_CHUNK_SIZE);
         }
 
-        // Обрабатываем остаток при достижении конца файла
+        // Process remaining data at end of file
         if ($this->stream->eof() && !empty($this->sidecarBuffer)) {
             $hmacCtx = hash_init('sha256', HASH_HMAC, $this->macKey);
             hash_update($hmacCtx, $this->sidecarBuffer);

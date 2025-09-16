@@ -4,38 +4,38 @@ require __DIR__ . '/../vendor/autoload.php';
 use GuzzleHttp\Psr7\Utils;
 use WhatsAppMedia\StreamFactory;
 
-// Пути к файлам
+// File paths
 $encryptedVideoPath = __DIR__ . '/../samples/original/VIDEO.encrypted';
 $keyPath = __DIR__ . '/../samples/original/VIDEO.key';
 $outputDecryptedPath = __DIR__ . '/../samples/VIDEO.decrypted';
 
 try {
-    // Проверяем существование файлов
+    // Check if files exist
     if (!file_exists($encryptedVideoPath)) {
-        throw new \RuntimeException("Зашифрованный файл не найден: $encryptedVideoPath");
+        throw new \RuntimeException("Encrypted file not found: $encryptedVideoPath");
     }
     if (!file_exists($keyPath)) {
-        throw new \RuntimeException("Файл ключа не найден: $keyPath");
+        throw new \RuntimeException("Key file not found: $keyPath");
     }
 
-    // Читаем ключ и создаем поток зашифрованного файла
+    // Read the key and create a stream for the encrypted file
     $mediaKey = file_get_contents($keyPath);
     $source = Utils::streamFor(fopen($encryptedVideoPath, 'rb'));
 
-    // Создаём дешифрующий поток
+    // Create the decrypting stream
     $decStream = StreamFactory::createDecryptingStream(
         $source,
         $mediaKey,
         'VIDEO'
     );
 
-    // Создаем директорию для выходного файла, если её нет
+    // Create the output directory if it doesn't exist
     $outputDir = dirname($outputDecryptedPath);
     if (!is_dir($outputDir)) {
         mkdir($outputDir, 0777, true);
     }
 
-    // Записываем расшифрованные данные
+    // Write the decrypted data
     $outputFile = fopen($outputDecryptedPath, 'wb');
     try {
         while (!$decStream->eof()) {
@@ -49,12 +49,12 @@ try {
         fclose($outputFile);
     }
 
-    echo "Видео успешно расшифровано: $outputDecryptedPath\n";
+    echo "Video successfully decrypted: $outputDecryptedPath\n";
 
 } catch (\InvalidArgumentException $e) {
-    echo "Ошибка валидации: " . $e->getMessage() . "\n";
+    echo "Validation error: " . $e->getMessage() . "\n";
     exit(1);
 } catch (\RuntimeException $e) {
-    echo "Ошибка расшифровки: " . $e->getMessage() . "\n";
+    echo "Decryption error: " . $e->getMessage() . "\n";
     exit(1);
 }

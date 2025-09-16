@@ -4,42 +4,42 @@ require __DIR__ . '/../vendor/autoload.php';
 use GuzzleHttp\Psr7\Utils;
 use WhatsAppMedia\StreamFactory;
 
-// Пути к файлам
+// File paths
 $originalVideoPath = __DIR__ . '/../samples/original/VIDEO.original';
 $keyPath = __DIR__ . '/../samples/original/VIDEO.key';
 $outputEncryptedPath = __DIR__ . '/../samples/VIDEO.encrypted';
 $outputSidecarPath = __DIR__ . '/../samples/VIDEO.sidecar';
 
 try {
-    // Проверяем существование исходных файлов
+    // Check if source files exist
     if (!file_exists($originalVideoPath)) {
-        throw new \RuntimeException("Исходный файл не найден: $originalVideoPath");
+        throw new \RuntimeException("Source file not found: $originalVideoPath");
     }
     if (!file_exists($keyPath)) {
-        throw new \RuntimeException("Файл ключа не найден: $keyPath");
+        throw new \RuntimeException("Key file not found: $keyPath");
     }
 
-    // Читаем ключ
+    // Read the key
     $mediaKey = file_get_contents($keyPath);
 
-    // Открываем исходный файл
+    // Open source file
     $source = Utils::streamFor(fopen($originalVideoPath, 'rb'));
 
-    // Создаем директорию для выходных файлов, если её нет
+    // Create output directory if it doesn't exist
     $outputDir = dirname($outputEncryptedPath);
     if (!is_dir($outputDir)) {
         mkdir($outputDir, 0777, true);
     }
 
-    // Создаём шифрующий поток с генерацией сайдкара
+    // Create encrypting stream with sidecar generation
     $encStream = StreamFactory::createEncryptingStream(
         $source,
         $mediaKey,
         'VIDEO',
-        true // включаем генерацию сайдкара
+        true // enable sidecar generation
     );
 
-    // Записываем зашифрованные данные
+    // Write encrypted data
     $outputFile = fopen($outputEncryptedPath, 'wb');
     try {
         while (!$encStream->eof()) {
@@ -53,26 +53,26 @@ try {
         fclose($outputFile);
     }
 
-    // После полного шифрования сохраняем сайдкар
+    // Save the sidecar after complete encryption
     file_put_contents($outputSidecarPath, $encStream->getSidecar());
 
-    echo "Видео успешно зашифровано: $outputEncryptedPath\n";
-    echo "Сайдкар сохранен: $outputSidecarPath\n";
+    echo "Video successfully encrypted: $outputEncryptedPath\n";
+    echo "Sidecar saved: $outputSidecarPath\n";
 
-    // Проверяем размеры файлов
+    // Check file sizes
     $originalSize = filesize($originalVideoPath);
     $encryptedSize = filesize($outputEncryptedPath);
     $sidecarSize = filesize($outputSidecarPath);
 
-    echo "\nИнформация о файлах:\n";
-    echo "Размер исходного файла: " . number_format($originalSize) . " байт\n";
-    echo "Размер зашифрованного файла: " . number_format($encryptedSize) . " байт\n";
-    echo "Размер сайдкара: " . number_format($sidecarSize) . " байт\n";
+    echo "\nFile information:\n";
+    echo "Original file size: " . number_format($originalSize) . " bytes\n";
+    echo "Encrypted file size: " . number_format($encryptedSize) . " bytes\n";
+    echo "Sidecar size: " . number_format($sidecarSize) . " bytes\n";
 
 } catch (\InvalidArgumentException $e) {
-    echo "Ошибка валидации: " . $e->getMessage() . "\n";
+    echo "Validation error: " . $e->getMessage() . "\n";
     exit(1);
 } catch (\RuntimeException $e) {
-    echo "Ошибка шифрования: " . $e->getMessage() . "\n";
+    echo "Encryption error: " . $e->getMessage() . "\n";
     exit(1);
 }
