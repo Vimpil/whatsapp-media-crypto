@@ -65,12 +65,13 @@ class EncryptingStream extends AbstractCryptoStream
 
     protected function processChunk(string $chunk): string
     {
-        if (empty($chunk)) {
-            return '';
-        }
-
+        // Ensure padding is applied even for empty streams
         $isFinal = $this->stream->eof();
         $dataToEncrypt = $isFinal ? $this->pkcs7_pad($chunk) : $chunk;
+
+        if (empty($dataToEncrypt)) {
+            return ''; // Return empty only if no data and not final
+        }
 
         $encrypted = openssl_encrypt(
             $dataToEncrypt,
@@ -144,9 +145,11 @@ class EncryptingStream extends AbstractCryptoStream
 
         $chunk = $this->stream->read(self::CHUNK_SIZE);
 
-        if ($chunk === '') {
-            if ($this->stream->eof()) {
-                $this->finalized = true;
+        if ($chunk === '' && $this->stream->eof()) {
+            // Apply padding for empty streams at the end
+            $processed = $this->processChunk('');
+            if (!empty($processed)) {
+                $this->buffer .= $processed;
             }
             return;
         }
