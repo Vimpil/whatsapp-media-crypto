@@ -41,16 +41,24 @@ class SidecarGenerator
         }
 
         $sidecar = '';
+        $buffer = '';
 
         // Read encrypted stream in fixed-size chunks
         while (!$this->stream->eof()) {
-            $chunk = $this->stream->read($chunkSize);
-            if ($chunk === '' || $chunk === false) {
-                break;
-            }
+            $buffer .= $this->stream->read($chunkSize);
 
-            // Compute HMAC-SHA256 for the chunk
-            $sig = hash_hmac('sha256', $chunk, $this->macKey, true);
+            // Process chunks of size chunkSize + 16
+            while (strlen($buffer) >= $chunkSize + 16) {
+                $window = substr($buffer, 0, $chunkSize + 16);
+                $sig = hash_hmac('sha256', $window, $this->macKey, true);
+                $sidecar .= substr($sig, 0, 10);
+                $buffer = substr($buffer, $chunkSize);
+            }
+        }
+
+        // Final chunk (< chunkSize + 16)
+        if (strlen($buffer) > 0) {
+            $sig = hash_hmac('sha256', $buffer, $this->macKey, true);
             $sidecar .= substr($sig, 0, 10);
         }
 
@@ -58,5 +66,45 @@ class SidecarGenerator
         file_put_contents($outputPath, $sidecar);
 
         file_put_contents($logFile, "Sidecar generation completed. bytes=" . strlen($sidecar) . "\n", FILE_APPEND);
+    }
+
+    private const CHUNK_SIZE = 65536; // 64 KB
+
+    public function generate(StreamInterface $encryptedStream): string
+    {
+        $encryptedStream->rewind();
+        $sidecar = '';
+        $buffer = '';
+
+        while (!$encryptedStream->eof()) {
+            $chunk = $encryptedStream->read(self::CHUNK_SIZE);
+            if ($chunk === false) {
+                $chunk = '';
+            }
+
+            $buffer .= $chunk;
+
+            // Process chunks of size CHUNK_SIZE + 16
+            while (strlen($buffer) >= self::CHUNK_SIZE + 16) {
+                $window = substr($buffer, 0, self::CHUNK_SIZE + 16);
+                $hmac = hash_hmac('sha256', $window, $this->macKey, true);
+                $sidecar .= substr($hmac, 0, 10);
+                $buffer = substr($buffer, self::CHUNK_SIZE);
+            }
+        }
+
+        // Process remaining data (for small files or the final chunk)
+        if (strlen($buffer) > 0) {
+            $hmac = hash_hmac('sha256', $buffer, $this->macKey, true);
+            $sidecar .= substr($hmac, 0, 10);
+        }
+
+        return $sidecar;
+    }
+
+    public function saveToFile(StreamInterface $encryptedStream, string $filePath): void
+    {
+        $sidecar = $this->generate($encryptedStream);
+        file_put_contents($filePath, $sidecar);
     }
 }

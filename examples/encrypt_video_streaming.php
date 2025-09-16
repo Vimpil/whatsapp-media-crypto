@@ -1,40 +1,45 @@
 <?php
-
 require __DIR__ . '/../vendor/autoload.php';
 
 use GuzzleHttp\Psr7\Utils;
 use WhatsAppMedia\MediaKey;
-use WhatsAppMedia\Stream\EncryptingStream;
-use WhatsAppMedia\Stream\SidecarGenerator;
+use WhatsAppMedia\Stream\EncryptingStreamWithSidecar;
 
-// Paths to the original video and key
+// Пути к оригинальному видео и mediaKey
 $originalVideoPath = __DIR__ . '/../samples/VIDEO.original';
 $keyPath = __DIR__ . '/../samples/VIDEO.key';
 $outputEncryptedPath = __DIR__ . '/../samples/VIDEO.encrypted';
 $sidecarPath = __DIR__ . '/../samples/VIDEO.sidecar.mine';
 
-// Read the media key
+// Загружаем mediaKey
 $mediaKey = file_get_contents($keyPath);
+
+// Расширяем ключ на части для шифрования
 $parts = MediaKey::expand($mediaKey, 'VIDEO');
 
-// Open the original video file
+// Берём IV из MediaKey::expand() — это важно!
+$iv = $parts['iv'];
+
+// Открываем оригинальный видеофайл
 $source = Utils::streamFor(fopen($originalVideoPath, 'rb'));
 
-// Create the encrypting stream
-$encStream = new EncryptingStream($source, $parts['cipherKey'], $parts['macKey'], $parts['iv']);
+// Создаём шифрующий поток с sidecar
+$encStream = new EncryptingStreamWithSidecar(
+    $source,
+    $parts['cipherKey'],
+    $parts['macKey'],
+    $iv
+);
 
-// Write the encrypted data to a new file
+// Записываем зашифрованное видео
 $outputFile = fopen($outputEncryptedPath, 'wb');
 while (!$encStream->eof()) {
     fwrite($outputFile, $encStream->read(8192));
 }
 fclose($outputFile);
 
-// Generate sidecar file for streaming
-$sidecarGenerator = new SidecarGenerator(Utils::streamFor(fopen($outputEncryptedPath, 'rb')), $parts['macKey']);
-$sidecarGenerator->generateSidecar($sidecarPath);
+// Генерация sidecar
+file_put_contents($sidecarPath, $encStream->getSidecar());
 
-// Output success messages
 echo "Encrypted video saved to: $outputEncryptedPath\n";
 echo "Sidecar file saved to: $sidecarPath\n";
-
