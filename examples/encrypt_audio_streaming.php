@@ -5,11 +5,13 @@ require __DIR__ . '/../vendor/autoload.php';
 use GuzzleHttp\Psr7\Utils;
 use WhatsAppMedia\MediaKey;
 use WhatsAppMedia\Stream\EncryptingStream;
+use WhatsAppMedia\Stream\SidecarGenerator;
 
 // Paths to the original audio and key
 $originalAudioPath = __DIR__ . '/../samples/AUDIO.original';
 $keyPath = __DIR__ . '/../samples/AUDIO.key';
 $outputEncryptedPath = __DIR__ . '/../samples/AUDIO.encrypted';
+$sidecarPath = __DIR__ . '/../samples/AUDIO.sidecar.mine';
 
 // Read the media key
 $mediaKey = file_get_contents($keyPath);
@@ -28,5 +30,11 @@ while (!$encStream->eof()) {
 }
 fclose($outputFile);
 
-// Output success message
+// Generate sidecar file for streaming
+$sidecarGenerator = new SidecarGenerator(Utils::streamFor(fopen($outputEncryptedPath, 'rb')), $parts['macKey']);
+$sidecarGenerator->generateSidecar($sidecarPath);
+
+// Output success messages
 echo "Encrypted audio saved to: $outputEncryptedPath\n";
+echo "Sidecar file saved to: $sidecarPath\n";
+
