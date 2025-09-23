@@ -22,6 +22,8 @@ composer require your-vendor/whatsapp-media-crypto
 - Built-in sidecar generation for video and audio streaming
 - Strict typing and complete documentation
 - 100% test coverage
+- Refactored `StreamFactory` with modular validation methods
+- Enhanced maintainability with detailed comments in core classes
 
 ## Project Structure
 
@@ -33,7 +35,7 @@ src/
 │   └── DecryptingStream.php        # Decryption implementation
 ├── HKDF.php                        # HKDF implementation
 ├── MediaKey.php                    # Media key handling
-└── StreamFactory.php               # Stream factory
+└── StreamFactory.php               # Stream factory with modular validation
 ```
 
 ## Usage Examples
@@ -99,16 +101,16 @@ The `examples/` directory contains ready-to-use scripts:
 
 ### Encryption
 - `encrypt_image.php` - image encryption
-- `encrypt_video_streaming.php` - video encryption with sidecar generation
-- `encrypt_audio_streaming.php` - audio encryption with sidecar generation
-- `encrypt_audio.php` - basic audio encryption
-- `encrypt_video.php` - basic video encryption
+- `encrypt_video.php` - video encryption
+- `encrypt_audio.php` - audio encryption
 - `encrypt_document.php` - document encryption
+- `encrypt_video_streaming.php` - video encryption with sidecar
+- `encrypt_audio_streaming.php` - audio encryption with sidecar
 
 ### Decryption
+- `decrypt_image.php` - image decryption
 - `decrypt_video.php` - video decryption
 - `decrypt_audio.php` - audio decryption
-- `decrypt_image.php` - image decryption
 - `decrypt_document.php` - document decryption
 
 All examples include:
