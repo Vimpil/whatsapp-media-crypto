@@ -6,7 +6,12 @@ namespace WhatsAppMedia\Stream;
 use Psr\Http\Message\StreamInterface;
 
 /**
- * Stream that encrypts media and optionally generates a sidecar (HMAC per chunk)
+ * Stream that encrypts media and optionally generates a sidecar (HMAC per chunk).
+ *
+ * Sidecar configuration (WhatsApp-compatible):
+ * - Chunk size: 64KB (SIDECAR_CHUNK_SIZE)
+ * - Overlap: 16 bytes from the next chunk (SIDECAR_OVERLAP)
+ * - Per-chunk MAC: HMAC-SHA256 truncated to 10 bytes (MAC_LEN)
  */
 class EncryptingStream extends AbstractCryptoStream
 {
@@ -25,6 +30,13 @@ class EncryptingStream extends AbstractCryptoStream
     /** @var bool Whether to generate sidecar */
     private bool $generateSidecar;
 
+    /**
+     * @param StreamInterface $source Source stream to encrypt
+     * @param string $cipherKey AES-256-CBC cipher key
+     * @param string $macKey HMAC-SHA256 MAC key
+     * @param string $iv Initialization vector
+     * @param bool $generateSidecar Whether to generate sidecar for streamable media
+     */
     public function __construct(
         StreamInterface $source,
         string $cipherKey,
@@ -49,6 +61,7 @@ class EncryptingStream extends AbstractCryptoStream
      *
      * @param int $length Number of bytes to read.
      * @return string Encrypted data.
+     * @throws \RuntimeException If encryption fails.
      */
     public function read($length): string
     {
@@ -67,7 +80,14 @@ class EncryptingStream extends AbstractCryptoStream
     }
 
     /**
-     * Return the sidecar after reading the full stream
+     * Return the sidecar after reading the full stream.
+     *
+     * Note: The sidecar is fully defined only after the encrypted stream has
+     * been completely read/drained. This method will read from the underlying
+     * stream until EOF if necessary.
+     *
+     * @return string
+     * @throws \RuntimeException If sidecar generation is not enabled.
      */
     public function getSidecar(): string
     {
@@ -84,7 +104,11 @@ class EncryptingStream extends AbstractCryptoStream
     }
 
     /**
-     * Encrypt a single chunk and optionally generate sidecar
+     * Encrypt a single chunk and optionally generate sidecar.
+     *
+     * @param string $chunk
+     * @return string
+     * @throws \RuntimeException If encryption fails.
      */
     protected function processChunk(string $chunk): string
     {
@@ -114,7 +138,7 @@ class EncryptingStream extends AbstractCryptoStream
         }
 
         if ($isFinal) {
-            $mac = substr(hash_final($this->macCtx, true), 0, self::MAC_LEN);
+            $mac = $this->truncateMac(hash_final($this->macCtx, true));
             $this->finalized = true;
             return $encrypted . $mac;
         }
@@ -123,7 +147,7 @@ class EncryptingStream extends AbstractCryptoStream
     }
 
     /**
-     * Process chunks for sidecar generation
+     * Process chunks for sidecar generation.
      */
     private function processSidecarChunk(string $encrypted): void
     {
@@ -142,7 +166,7 @@ class EncryptingStream extends AbstractCryptoStream
             // HMAC for this sidecar chunk
             $hmacCtx = hash_init('sha256', HASH_HMAC, $this->macKey);
             hash_update($hmacCtx, $chunk);
-            $this->sidecar .= substr(hash_final($hmacCtx, true), 0, self::MAC_LEN);
+            $this->sidecar .= $this->truncateMac(hash_final($hmacCtx, true));
 
             $this->sidecarBuffer = substr($this->sidecarBuffer, self::SIDECAR_CHUNK_SIZE);
         }
@@ -151,7 +175,7 @@ class EncryptingStream extends AbstractCryptoStream
         if ($this->stream->eof() && $this->sidecarBuffer !== '') {
             $hmacCtx = hash_init('sha256', HASH_HMAC, $this->macKey);
             hash_update($hmacCtx, $this->sidecarBuffer);
-            $this->sidecar .= substr(hash_final($hmacCtx, true), 0, self::MAC_LEN);
+            $this->sidecar .= $this->truncateMac(hash_final($hmacCtx, true));
             $this->sidecarBuffer = '';
         }
     }

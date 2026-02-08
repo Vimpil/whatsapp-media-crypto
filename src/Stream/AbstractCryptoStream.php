@@ -14,7 +14,8 @@ abstract class AbstractCryptoStream implements StreamInterface
     use StreamDecoratorTrait;
 
     protected const CHUNK_SIZE = 65536; // 64 KB
-    protected const MAC_LEN = 10; // Length of the MAC (Message Authentication Code)
+    protected const MAC_LEN = 10; // Length of the truncated MAC (WhatsApp-specific, non-AEAD)
+    protected const AES_BLOCK_SIZE = 16; // AES block size in bytes
 
     /** @var StreamInterface Source stream to be encrypted or decrypted */
     protected StreamInterface $stream;
@@ -96,10 +97,10 @@ abstract class AbstractCryptoStream implements StreamInterface
      * Add PKCS7 padding to the data
      *
      * @param string $data Data to pad
-     * @param int $blockSize Block size (default 16)
+     * @param int $blockSize Block size (default AES block size)
      * @return string Padded data
      */
-    protected function pkcs7_pad(string $data, int $blockSize = 16): string
+    protected function pkcs7_pad(string $data, int $blockSize = self::AES_BLOCK_SIZE): string
     {
         $padLen = $blockSize - (strlen($data) % $blockSize);
         return $data . str_repeat(chr($padLen), $padLen);
@@ -119,7 +120,7 @@ abstract class AbstractCryptoStream implements StreamInterface
         }
 
         $padLen = ord($data[strlen($data) - 1]);
-        if ($padLen < 1 || $padLen > 16) {
+        if ($padLen < 1 || $padLen > self::AES_BLOCK_SIZE) {
             throw new \RuntimeException('Invalid PKCS7 padding');
         }
 
@@ -129,5 +130,16 @@ abstract class AbstractCryptoStream implements StreamInterface
         }
 
         return substr($data, 0, -$padLen);
+    }
+
+    /**
+     * Truncate a full-length HMAC to the protocol MAC length.
+     *
+     * WhatsApp uses HMAC-SHA256 truncated to 10 bytes; this is not an AEAD
+     * construction and should not be copied for generic crypto.
+     */
+    protected function truncateMac(string $mac): string
+    {
+        return substr($mac, 0, self::MAC_LEN);
     }
 }

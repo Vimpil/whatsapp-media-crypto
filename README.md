@@ -11,7 +11,7 @@ A library for encrypting and decrypting media files using WhatsApp algorithms. I
 ## Installation
 
 ```bash
-composer require your-vendor/whatsapp-media-crypto
+composer require vimpil/whatsapp-media-crypto
 ```
 
 ## Main Features
@@ -68,6 +68,11 @@ $encryptedStream = StreamFactory::createEncryptingStream(
     'VIDEO',
     true // enable sidecar generation
 );
+
+// Drain the encrypted stream first so that the sidecar is fully generated
+while (!$encryptedStream->eof()) {
+    $encryptedStream->read(8192);
+}
 
 // Get the sidecar after encryption
 $sidecar = $encryptedStream->getSidecar();
@@ -139,6 +144,10 @@ All examples include:
 - Overlap: 16 bytes
 - HMAC SHA-256 for each chunk, truncated to 10 bytes
 - On-the-fly generation without additional reads from source stream
+
+> Note: The 10-byte MAC truncation is WhatsApp-specific and is not an AEAD
+> construction. It is implemented here for protocol compatibility and should
+> not be reused as a generic cryptographic design.
 
 ## Testing
 
