@@ -67,7 +67,7 @@ abstract class AbstractCryptoStream implements StreamInterface
      * @param int $length Number of bytes to read
      * @return string
      */
-    abstract public function read(int $length): string;
+    abstract public function read($length);
 
     /**
      * Check if stream has reached EOF
