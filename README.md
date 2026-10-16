@@ -1,5 +1,8 @@
 # WhatsApp Media Crypto
 
+[![PHP >=7.4](https://img.shields.io/packagist/dependency-v/vimpil/whatsapp-media-crypto/php)](https://packagist.org/packages/vimpil/whatsapp-media-crypto)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A library for encrypting and decrypting media files using WhatsApp algorithms. Implements PSR-7 compatible stream decorators.
 
 ## Requirements
@@ -21,7 +24,6 @@ composer require vimpil/whatsapp-media-crypto
 - Streaming processing of large files
 - Built-in sidecar generation for video and audio streaming
 - Strict typing and complete documentation
-- 100% test coverage
 - Refactored `StreamFactory` with modular validation methods
 - Enhanced maintainability with detailed comments in core classes
 
