@@ -3,7 +3,16 @@
 [![PHP >=7.4](https://img.shields.io/packagist/dependency-v/vimpil/whatsapp-media-crypto/php)](https://packagist.org/packages/vimpil/whatsapp-media-crypto)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A library for encrypting and decrypting media files using WhatsApp algorithms. Implements PSR-7 compatible stream decorators.
+An experimental PHP implementation of the WhatsApp media encryption scheme (HKDF, AES-CBC, HMAC) as PSR-7 stream decorators.
+
+> **Status: experimental, not production-ready.**
+>
+> - **Known correctness issues:** behavior for data larger than 64 KiB is incorrect.
+> - **Known security issue:** decrypted plaintext may be released before the MAC of the whole stream has been verified. Do not use it to process untrusted input.
+> - **Not an official implementation.** It is an independent project, not affiliated with or endorsed by WhatsApp or Meta, and its compatibility with WhatsApp is not guaranteed.
+> - **Not audited for security.** No stable release is planned, and `dev-master` may change without notice.
+>
+> Treat it as a learning and experimentation project.
 
 ## Requirements
 
@@ -13,19 +22,19 @@ A library for encrypting and decrypting media files using WhatsApp algorithms. I
 
 ## Installation
 
+Not recommended for production use (see the status notice above). For experimentation only:
+
 ```bash
-composer require vimpil/whatsapp-media-crypto
+composer require vimpil/whatsapp-media-crypto:dev-master
 ```
 
 ## Main Features
 
 - PSR-7 compatible stream decorators
 - Support for various media types (images, video, audio, documents)
-- Streaming processing of large files
+- Stream-based API (see the known issue above for data over 64 KiB)
 - Built-in sidecar generation for video and audio streaming
-- Strict typing and complete documentation
 - Refactored `StreamFactory` with modular validation methods
-- Enhanced maintainability with detailed comments in core classes
 
 ## Project Structure
 
@@ -160,31 +169,11 @@ vendor/bin/phpunit
 
 ### Test Coverage
 
-Tests cover all requirements:
-
-1. Basic functionality:
-   - Encryption/decryption for all media types
-   - Correct handling of various file sizes
-   - Verification against reference files
-
-2. Sidecar generation (bonus task):
-   - Generation for video and audio files
-   - Verification against reference sidecars
-   - Format and size validation
-
-3. Edge cases:
-   - Invalid MAC verification
-   - Empty stream handling
-   - Key length validation
-   - Unsupported media type checks
+`tests/CryptoTest.php` contains PHPUnit tests for encryption/decryption round trips, sidecar generation, invalid MAC, empty stream, key length validation and unsupported types. These tests do not cover the known issues listed at the top of this file, and no coverage figure is claimed.
 
 ## Security
 
-- Input data validation
-- MAC verification for each chunk
-- Secure cryptographic primitive handling
-- Proper error handling
-- Data integrity verification
+This library makes no security guarantees. See the status notice at the top of this file for the known issues.
 
 ## License
 
